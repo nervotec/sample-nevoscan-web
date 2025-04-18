@@ -57,9 +57,9 @@ npm run dev
 - Stable internet connection
 
 
-## 📸 Frame Capture & Backend Upload – Developer Note
+##  Frame Capture & Backend Upload – Developer Note
 
-This document outlines the core classes and functions responsible for:
+This part outlines the core classes and functions responsible for:
 
 - Capturing video frames
 - Recording them
