@@ -57,50 +57,40 @@ npm run dev
 - Stable internet connection
 
 
-📸 Frame Capture & Backend Upload – Developer Note
-This section outlines the core classes and functions responsible for:
+## 📸 Frame Capture & Backend Upload – Developer Note
 
-Capturing video frames
+This document outlines the core classes and functions responsible for:
 
-Recording them
+- Capturing video frames
+- Recording them
+- Sending the recorded video to the backend server
 
-Sending the recorded video to the backend server
+## Classes & Responsibilities
 
-1. VideoStreamManager
-File: services/video/VideoStreamManager.js
-Role: Initializes and controls the webcam stream.
+### VideoStreamManager
 
-Key Methods:
+- File: `services/video/VideoStreamManager.js`
+- Role: Initializes and controls the webcam stream
+- Key Methods:
+  - `setupStream(camera)`: Requests camera access and attaches the stream to the `<video>` element
+  - `startPlayback()`: Starts playing the local stream
+  - `stopStream()` / `cleanup()`: Stops and releases the stream
 
-setupStream(camera): Requests camera access and attaches the stream to the <video> element.
+### VideoRecorder
 
-startPlayback(): Starts playing the local stream.
+- File: `services/video/VideoRecorder.js`
+- Role: Records the active webcam stream and accumulates video data chunks
+- Key Methods:
+  - `setStream(stream)`: Assigns the webcam stream for recording
+  - `startRecording()`: Starts recording using `MediaRecorder`
+  - `stopRecording()`: Stops the recording and finalizes the data
+  - `getRecordedBlob()`: Returns the final recorded video as a Blob
 
-stopStream() / cleanup(): Stops and releases the stream.
+### uploadVideo
 
-2. VideoRecorder
-File: services/video/VideoRecorder.js
-Role: Records the active webcam stream and accumulates video data chunks.
+- File: `services/backendService.js`
+- Role: Handles uploading the recorded video to the backend
+- Signature:
 
-Key Methods:
-
-setStream(stream): Assigns the webcam stream for recording.
-
-startRecording(): Starts recording using MediaRecorder.
-
-stopRecording(): Stops the recording and finalizes the data.
-
-getRecordedBlob(): Returns the final recorded video as a Blob.
-
-3. uploadVideo
-File: services/backendService.js
-Role: Handles uploading the recorded video to the backend.
-
-Function Signature:
-
-js
-Copy
-Edit
+```js
 uploadVideo(videoBlob, setJobID)
-Behavior:
-Takes the Blob from VideoRecorder, sends it via a POST request, and updates jobID.
