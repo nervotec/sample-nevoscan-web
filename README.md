@@ -94,3 +94,10 @@ This document outlines the core classes and functions responsible for:
 
 ```js
 uploadVideo(videoBlob, setJobID)
+```
+
+### Behavior:
+
+- Takes the Blob from VideoRecorder
+- Sends it via a POST request
+- Updates jobID on successful upload
