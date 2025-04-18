@@ -1,5 +1,3 @@
-# Nervoscan Sample Web  Application
-
 ![nervotec.png](nervotec.png)
 
 # NervoScan: Contactless Vital Sign Monitoring Web Application
