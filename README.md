@@ -96,7 +96,7 @@ This part outlines the core classes and functions responsible for:
 uploadVideo(videoBlob, setJobID)
 ```
 
-### Behavior:
+#### Behavior:
 
 - Takes the Blob from VideoRecorder
 - Sends it via a POST request
