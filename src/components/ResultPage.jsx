@@ -9,9 +9,9 @@ import spo2 from "../assets/images/RightSideCard/Spo2.png";
 import rr from "../assets/images/RightSideCard/Respiration.png";
 import Hemoglobin from "../assets/images/LeftSideCard/Hemoglobin.png";
 import Glucose from "../assets/images/LeftSideCard/Glucose.png";
-import { checkResults, getResults } from "../services/backendService";
-
+import { Client } from "nervoscan-js-sdk";
 const ResultPage = ({ jobID, setScanVisibility, setScanButtonDisable, setSpinnerVisibility }) => {
+  const nervoscanClient = useRef(null);
   const [results, setResults] = useState({
     HR: "--",
     RR: "--",
@@ -47,9 +47,13 @@ const ResultPage = ({ jobID, setScanVisibility, setScanButtonDisable, setSpinner
       return;
     }
 
-
-
-    pollingRef.current = setInterval(()=>checkResults(jobID, setJobStatus), 1000);
+    
+    nervoscanClient.current = Client.getInstance();
+    pollingRef.current = setInterval(async ()=>{
+      const status = await nervoscanClient.current.checkResults(jobID)
+      console.log("status",status);
+      setJobStatus(status);
+    }, 1000);
 
     return () => {
       clearInterval(pollingRef.current);
@@ -60,7 +64,7 @@ const ResultPage = ({ jobID, setScanVisibility, setScanButtonDisable, setSpinner
     const fetchResults = async () => {
       if (jobStatus === "Completed") {
         clearInterval(pollingRef.current);
-        const results = await getResults(jobID);
+        const results = await nervoscanClient.current.getResults(jobID);
         console.log("results",results);
         console.log("results.estimates",results.estimates);
         const data = results.estimates[0][0].scan_details[0];

@@ -3,11 +3,10 @@ import ScanArea from './components/ScanArea';
 import { v4 as uuidv4 } from 'uuid';
 import useInternetStatus from './hooks/useInternetStatus';
 import ErrorNotification from './components/ErrorNotification';
-import { uploadVideo } from './services/backendService';
 import { VideoRecorder } from './services/video/VideoRecorder';
 import { VideoStreamManager } from './services/video/VideoStreamManager';
 import { ProgressManager } from './services/video/ProgressManager';
-
+import { Client } from 'nervoscan-js-sdk'
 const STREAM_DURATION = 20000; // 30 seconds
 
 function VideoStream({ jobID, setJobID, scanButtonDisable, setScanButtonDisable, scanVisibility, setScanVisibility, setSpinnerVisibility }) {
@@ -22,8 +21,12 @@ function VideoStream({ jobID, setJobID, scanButtonDisable, setScanButtonDisable,
   const videoRecorderRef = useRef(new VideoRecorder());
   const videoStreamManagerRef = useRef(null);
   const progressManagerRef = useRef(null);
+  const nervoscanClient = useRef(null);
 
   useEffect(() => {
+    nervoscanClient.current = Client.getInstance();
+    nervoscanClient.current.initialize('chathuranga', '123');
+
     if (localVideoRef.current) {
       videoStreamManagerRef.current = new VideoStreamManager(localVideoRef.current);
     }
@@ -107,7 +110,9 @@ function VideoStream({ jobID, setJobID, scanButtonDisable, setScanButtonDisable,
     console.log('Attempting to get blob...');
     const videoBlob = videoRecorderRef.current?.getRecordedBlob();
     console.log('Blob:', videoBlob);
-    uploadVideo(videoBlob, setJobID);
+    const apiKey = await nervoscanClient.current.uploadVideo(videoBlob);
+    console.log(apiKey);
+    setJobID(apiKey);
   };
   
   return (
