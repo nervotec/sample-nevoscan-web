@@ -55,3 +55,49 @@ npm run dev
 - Webcam with minimum 720p resolution
 - Node.js v14 or higher
 - Stable internet connection
+
+
+##  Frame Capture & Backend Upload – Developer Note
+
+This part outlines the core classes and functions responsible for:
+
+- Capturing video frames
+- Recording them
+- Sending the recorded video to the backend server
+
+## Classes & Responsibilities
+
+### VideoStreamManager
+
+- File: `services/video/VideoStreamManager.js`
+- Role: Initializes and controls the webcam stream
+- Key Methods:
+  - `setupStream(camera)`: Requests camera access and attaches the stream to the `<video>` element
+  - `startPlayback()`: Starts playing the local stream
+  - `stopStream()` / `cleanup()`: Stops and releases the stream
+
+### VideoRecorder
+
+- File: `services/video/VideoRecorder.js`
+- Role: Records the active webcam stream and accumulates video data chunks
+- Key Methods:
+  - `setStream(stream)`: Assigns the webcam stream for recording
+  - `startRecording()`: Starts recording using `MediaRecorder`
+  - `stopRecording()`: Stops the recording and finalizes the data
+  - `getRecordedBlob()`: Returns the final recorded video as a Blob
+
+### uploadVideo
+
+- File: `services/backendService.js`
+- Role: Handles uploading the recorded video to the backend
+- Signature:
+
+```js
+uploadVideo(videoBlob, setJobID)
+```
+
+#### Behavior:
+
+- Takes the Blob from VideoRecorder
+- Sends it via a POST request
+- Updates jobID on successful upload
