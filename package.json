@@ -1,6 +1,6 @@
 {
   "name": "webapp",
-  "version": "0.1.0",
+  "version": "1.0.2",
   "private": true,
   "dependencies": {
     "@esbuild-plugins/node-globals-polyfill": "^0.2.3",
