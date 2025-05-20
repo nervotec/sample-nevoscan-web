@@ -10,6 +10,8 @@ import rr from "../assets/images/RightSideCard/Respiration.png";
 import Hemoglobin from "../assets/images/LeftSideCard/Hemoglobin.png";
 import Glucose from "../assets/images/LeftSideCard/Glucose.png";
 import { Client } from "nervoscan-js-sdk";
+
+
 const ResultPage = ({ jobID, setScanVisibility, setScanButtonDisable, setSpinnerVisibility }) => {
   const nervoscanClient = useRef(null);
   const [results, setResults] = useState({
@@ -25,9 +27,13 @@ const ResultPage = ({ jobID, setScanVisibility, setScanButtonDisable, setSpinner
     HEALTHSCORE: "--",
   });
 
-  const pollingRef = useRef(null);
   const firstFetchDone = useRef(false);
   const [jobStatus, setJobStatus] = useState(null);
+
+  const onResults = (results) => {
+    setResults(results);
+    setSpinnerVisibility(false);
+  }
 
   useEffect(() => {
     if (!jobID) {
@@ -49,32 +55,10 @@ const ResultPage = ({ jobID, setScanVisibility, setScanButtonDisable, setSpinner
 
     
     nervoscanClient.current = Client.getInstance();
-    pollingRef.current = setInterval(async ()=>{
-      const status = await nervoscanClient.current.checkResults(jobID)
-      console.log("status",status);
-      setJobStatus(status);
-    }, 1000);
+    nervoscanClient.current.setOnFinalResults(onResults);
 
-    return () => {
-      clearInterval(pollingRef.current);
-    };
+
   }, [jobID]);
-
-  useEffect(() => {
-    const fetchResults = async () => {
-      if (jobStatus === "Completed") {
-        clearInterval(pollingRef.current);
-        const results = await nervoscanClient.current.getResults(jobID);
-        console.log("results",results);
-        console.log("results.estimates",results.estimates);
-        const data = results.estimates[0][0].scan_details[0];
-        console.log("data",data);
-        setResults(data);
-        setSpinnerVisibility(false);
-      }
-    }
-    fetchResults();
-  }, [jobStatus]);
 
   const resultsData = [
     { title: "Heart Rate", value: `${results.HR} BPM`, icon: hr, status: "" },
