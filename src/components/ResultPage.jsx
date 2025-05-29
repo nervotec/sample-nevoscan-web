@@ -27,36 +27,24 @@ const ResultPage = ({ jobID, setScanVisibility, setScanButtonDisable, setSpinner
     HEALTHSCORE: "--",
   });
 
-  const firstFetchDone = useRef(false);
-  const [jobStatus, setJobStatus] = useState(null);
 
   const onResults = (results) => {
     setResults(results);
     setSpinnerVisibility(false);
   }
 
-  useEffect(() => {
-    if (!jobID) {
-      setResults({
-        HR: "--",
-        RR: "--",
-        SDNN: "--",
-        SPO2: "--",
-        DBP: "--",
-        SBP: "--",
-        GLUCOSE: "--",
-        HEMOGLOBIN: "--",
-        AGE: "--",
-        HEALTHSCORE: "--",
-      });
-      firstFetchDone.current = false;
-      return;
-    }
+  const onError = (error) => {
+    alert(error.message);
+    setSpinnerVisibility(false);
+    setScanVisibility(true);
+    setScanButtonDisable(false);
+  }
 
+  useEffect(() => {
     
     nervoscanClient.current = Client.getInstance();
     nervoscanClient.current.setOnFinalResults(onResults);
-
+    nervoscanClient.current.setOnError(onError);
 
   }, [jobID]);
 
@@ -74,8 +62,6 @@ const ResultPage = ({ jobID, setScanVisibility, setScanButtonDisable, setSpinner
   const rescanButton = () => {
     setScanVisibility(true);
     setScanButtonDisable(false);
-    firstFetchDone.current = false;
-    setJobStatus(null);
   };
 
   return (
