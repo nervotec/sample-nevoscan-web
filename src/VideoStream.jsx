@@ -10,8 +10,8 @@ import { Client } from 'nervoscan-js-sdk'
 const STREAM_DURATION = 20000; // 30 seconds
 
 function VideoStream({ jobID, setJobID, scanButtonDisable, setScanButtonDisable, scanVisibility, setScanVisibility, setSpinnerVisibility }) {
-  const [isStreaming, setIsStreaming] = useState(false);
-  const [selectedCamera, setSelectedCamera] = useState(null); 
+  const useStreaming = useRef(true);
+  const [selectedCamera, setSelectedCamera] = useState(null);
   const localVideoRef = useRef(null);
   const progressRef = useRef(null);
   const isOnline = useInternetStatus();
@@ -26,6 +26,7 @@ function VideoStream({ jobID, setJobID, scanButtonDisable, setScanButtonDisable,
   useEffect(() => {
     nervoscanClient.current = Client.getInstance();
     nervoscanClient.current.initialize('chathuranga', '123');
+    nervoscanClient.current.setOnDisconnection(() => stopStreaming());
 
     if (localVideoRef.current) {
       videoStreamManagerRef.current = new VideoStreamManager(localVideoRef.current);
@@ -51,20 +52,12 @@ function VideoStream({ jobID, setJobID, scanButtonDisable, setScanButtonDisable,
     };
   }, [selectedCamera]);
 
-  useEffect(() => {
-    if (isStreaming) {
-      progressManagerRef.current?.startProgressTracking();
-    }
-    return () => {
-      progressManagerRef.current?.cleanup();
-    };
-  }, [isStreaming]);
-
   const setupLocalMediaStream = async (camera) => {
     try {
       const stream = await videoStreamManagerRef.current?.setupStream(camera);
       if (stream) {
         videoRecorderRef.current.setStream(stream);
+        nervoscanClient.current.initializeStreaming(stream, localVideoRef.current);
       }
     } catch (error) {
       console.error('Error setting up stream:', error);
@@ -75,15 +68,17 @@ function VideoStream({ jobID, setJobID, scanButtonDisable, setScanButtonDisable,
     progressManagerRef.current?.stopProgressTracking();
     await progressManagerRef.current?.accelerateProgress();
     progressManagerRef.current?.resetProgress();
-    setIsStreaming(false);
     setScanVisibility(false);
     setSpinnerVisibility(true);
-    await videoRecorderRef.current?.stopRecording();
+    if (!useStreaming.current) {
+      await videoRecorderRef.current?.stopRecording();
+    }
   };
 
   const handleButtonClick = async () => {
     try {
       startVideoStream();
+      progressManagerRef.current?.startProgressTracking();
     } catch (error) {
       console.error('Error starting video processing:', error);
     }
@@ -91,9 +86,13 @@ function VideoStream({ jobID, setJobID, scanButtonDisable, setScanButtonDisable,
 
   const startVideoStream = async () => {
     try {
-      await videoStreamManagerRef.current?.startPlayback();
-      videoRecorderRef.current?.startRecording();
-      setIsStreaming(true);
+      if (useStreaming.current) {
+        const apiKey = await nervoscanClient.current.startStreaming();
+        setJobID(apiKey);
+      } else {
+        await videoStreamManagerRef.current?.startPlayback();
+        videoRecorderRef.current?.startRecording();
+      }
       setScanButtonDisable(true);
     } catch (error) {
       console.error('Error starting video stream:', error);
@@ -104,7 +103,11 @@ function VideoStream({ jobID, setJobID, scanButtonDisable, setScanButtonDisable,
     videoStreamManagerRef.current?.cleanup();
     videoRecorderRef.current?.cleanup();
   };
+
   const onProgressComplete = async () => {
+    if (useStreaming.current) {
+      return;
+    }
     console.log('Progress complete');
     await stopStreaming();
     console.log('Attempting to get blob...');
@@ -114,22 +117,21 @@ function VideoStream({ jobID, setJobID, scanButtonDisable, setScanButtonDisable,
     console.log(apiKey);
     setJobID(apiKey);
   };
-  
+
   return (
     <div>
-      <ScanArea 
+      <ScanArea
         localVideoRef={localVideoRef}
         progressRef={progressRef}
         handleButtonClick={handleButtonClick}
-        isStreaming={isStreaming}
         onSelectCamera={setSelectedCamera}
         scanButtonDisable={scanButtonDisable}
         scanVisibility={scanVisibility}
       />
-      <ErrorNotification 
-        isOpen={isDialogOpen} 
-        onClose={() => setIsDialogOpen(false)} 
-        message="Internet connection is lost. Please restart the scan after connecting to the internet." 
+      <ErrorNotification
+        isOpen={isDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
+        message="Internet connection is lost. Please restart the scan after connecting to the internet."
       />
     </div>
   );

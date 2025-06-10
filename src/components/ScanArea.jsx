@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import ProgressBar from '../components/ProgressBar'; 
 import Dropdown from '../components/DropDown'
 
-const ScanArea = ({ localVideoRef, progressRef, handleButtonClick, isStreaming, onSelectCamera, scanButtonDisable ,scanVisibility }) => {
+const ScanArea = ({ localVideoRef, progressRef, handleButtonClick, onSelectCamera, scanButtonDisable ,scanVisibility }) => {
   const [alertMessage, setAlertMessage] = useState('Face Not Detected');
   
   return (
