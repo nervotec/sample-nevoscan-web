@@ -3,30 +3,31 @@ import ScanArea from './components/ScanArea';
 import { v4 as uuidv4 } from 'uuid';
 import useInternetStatus from './hooks/useInternetStatus';
 import ErrorNotification from './components/ErrorNotification';
-import { VideoRecorder } from './services/video/VideoRecorder';
 import { VideoStreamManager } from './services/video/VideoStreamManager';
 import { ProgressManager } from './services/video/ProgressManager';
 import { Client } from 'nervoscan-js-sdk'
 const STREAM_DURATION = 20000; // 30 seconds
 
 function VideoStream({ jobID, setJobID, scanButtonDisable, setScanButtonDisable, scanVisibility, setScanVisibility, setSpinnerVisibility }) {
-  const useStreaming = useRef(true);
   const [selectedCamera, setSelectedCamera] = useState(null);
   const localVideoRef = useRef(null);
   const progressRef = useRef(null);
   const isOnline = useInternetStatus();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const stream = useRef(null);
 
   // Initialize service instances
-  const videoRecorderRef = useRef(new VideoRecorder());
   const videoStreamManagerRef = useRef(null);
   const progressManagerRef = useRef(null);
   const nervoscanClient = useRef(null);
 
   useEffect(() => {
     nervoscanClient.current = Client.getInstance();
-    nervoscanClient.current.initialize('chathuranga', '123');
+    nervoscanClient.current.initialize({ licenseKey: '3a84ab78-3e9c-4b06-a464-e5422c1bb990', serverType: 'server', useRgb: true });
     nervoscanClient.current.setOnDisconnection(() => stopStreaming());
+    nervoscanClient.current.setOnAlignmentStatus?.(() => {
+      // Optionally handle alignment feedback here without UI changes
+    });
 
     if (localVideoRef.current) {
       videoStreamManagerRef.current = new VideoStreamManager(localVideoRef.current);
@@ -54,10 +55,14 @@ function VideoStream({ jobID, setJobID, scanButtonDisable, setScanButtonDisable,
 
   const setupLocalMediaStream = async (camera) => {
     try {
-      const stream = await videoStreamManagerRef.current?.setupStream(camera);
-      if (stream) {
-        videoRecorderRef.current.setStream(stream);
-        nervoscanClient.current.initializeStreaming(stream, localVideoRef.current);
+      stream.current = await videoStreamManagerRef.current?.setupStream(camera);
+      if (stream.current) {
+        await nervoscanClient.current.initializeStreaming(
+          stream.current,
+          localVideoRef.current,
+          { targetFPS: 30, enableFrameValidation: true, enableQualityControl: true }
+        );
+        nervoscanClient.current.startFaceDetection?.();
       }
     } catch (error) {
       console.error('Error setting up stream:', error);
@@ -65,14 +70,17 @@ function VideoStream({ jobID, setJobID, scanButtonDisable, setScanButtonDisable,
   };
 
   const stopStreaming = async () => {
+    try {
+      nervoscanClient.current?.stopFaceDetection?.();
+      await nervoscanClient.current?.stopStreaming?.();
+    } catch (e) {
+      console.error('Error stopping nervoscan client:', e);
+    }
     progressManagerRef.current?.stopProgressTracking();
     await progressManagerRef.current?.accelerateProgress();
     progressManagerRef.current?.resetProgress();
     setScanVisibility(false);
-    setSpinnerVisibility(true);
-    if (!useStreaming.current) {
-      await videoRecorderRef.current?.stopRecording();
-    }
+    // setSpinnerVisibility(true);
   };
 
   const handleButtonClick = async () => {
@@ -86,13 +94,8 @@ function VideoStream({ jobID, setJobID, scanButtonDisable, setScanButtonDisable,
 
   const startVideoStream = async () => {
     try {
-      if (useStreaming.current) {
-        const apiKey = await nervoscanClient.current.startStreaming();
-        setJobID(apiKey);
-      } else {
-        await videoStreamManagerRef.current?.startPlayback();
-        videoRecorderRef.current?.startRecording();
-      }
+      const apiKey = await nervoscanClient.current.startStreaming();
+      setJobID(apiKey);
       setScanButtonDisable(true);
     } catch (error) {
       console.error('Error starting video stream:', error);
@@ -101,21 +104,14 @@ function VideoStream({ jobID, setJobID, scanButtonDisable, setScanButtonDisable,
 
   const cleanupResources = () => {
     videoStreamManagerRef.current?.cleanup();
-    videoRecorderRef.current?.cleanup();
   };
 
   const onProgressComplete = async () => {
-    if (useStreaming.current) {
-      return;
+    try {
+      await stopStreaming();
+    } catch (e) {
+      console.error('Error on progress complete stop:', e);
     }
-    console.log('Progress complete');
-    await stopStreaming();
-    console.log('Attempting to get blob...');
-    const videoBlob = videoRecorderRef.current?.getRecordedBlob();
-    console.log('Blob:', videoBlob);
-    const apiKey = await nervoscanClient.current.uploadVideo(videoBlob);
-    console.log(apiKey);
-    setJobID(apiKey);
   };
 
   return (
