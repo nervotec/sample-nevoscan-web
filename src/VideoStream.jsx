@@ -80,7 +80,6 @@ function VideoStream({ jobID, setJobID, scanButtonDisable, setScanButtonDisable,
     await progressManagerRef.current?.accelerateProgress();
     progressManagerRef.current?.resetProgress();
     setScanVisibility(false);
-    // setSpinnerVisibility(true);
   };
 
   const handleButtonClick = async () => {
